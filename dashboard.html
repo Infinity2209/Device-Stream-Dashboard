@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Device Stream Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header h1 {
+      font-size: 28px;
+      color: white;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header h1::before {
+      content: "📊";
+      font-size: 32px;
+    }
+
+    #gap-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
+      visibility: hidden;
+      animation: pulse 2s infinite;
+    }
+
+    #gap-indicator::before {
+      content: "⚠️";
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.7;
+      }
+    }
+
+    #controls {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 24px;
+      border-radius: 16px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #live-btn {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      box-shadow: 0 4px 12px rgba(56, 239, 125, 0.3);
+    }
+
+    #export-btn {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      box-shadow: 0 4px 12px rgba(250, 112, 154, 0.3);
+    }
+
+    input[type="file"] {
+      padding: 8px 12px;
+      border: 2px dashed #667eea;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    input[type="file"]:hover {
+      border-color: #764ba2;
+      background: #f7fafc;
+    }
+
+    input[type="number"] {
+      padding: 8px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      width: 80px;
+      font-size: 14px;
+      transition: border-color 0.3s ease;
+    }
+
+    input[type="number"]:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      color: #2d3748;
+    }
+
+    #charts {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 24px;
+      border-radius: 16px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    canvas {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      height: 300px !important;
+      width: 100% !important;
+    }
+
+    #kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .kpi:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .kpi-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #718096;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .kpi-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #2d3748;
+    }
+
+    .kpi-unit {
+      font-size: 14px;
+      color: #a0aec0;
+      margin-left: 4px;
+    }
+
+    #log {
+      background: rgba(26, 32, 44, 0.95);
+      backdrop-filter: blur(10px);
+      color: #68d391;
+      font-family: 'Courier New', monospace;
+      height: 200px;
+      overflow-y: auto;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    #log::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    #log::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
+    #log::-webkit-scrollbar-thumb {
+      background: rgba(104, 211, 145, 0.5);
+      border-radius: 4px;
+    }
+
+    #log::-webkit-scrollbar-thumb:hover {
+      background: rgba(104, 211, 145, 0.7);
+    }
+
+    .log-time {
+      color: #9f7aea;
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+      }
+
+      #controls {
+        justify-content: center;
+      }
+
+      #kpis {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>Device Stream Dashboard</h1>
+      <div id="gap-indicator" aria-live="assertive" aria-atomic="true">No data > 10s</div>
+    </header>
+
+    <section id="controls">
+      <button id="live-btn" aria-label="Start live data stream">🔴 Live Stream</button>
+      <input type="file" id="file-input" accept=".jsonl,.txt" aria-label="Load JSONL file for replay" />
+      <button id="play-btn" disabled aria-label="Play replay">▶️ Play</button>
+      <button id="pause-btn" disabled aria-label="Pause replay">⏸️ Pause</button>
+      <label for="speed-input">
+        Speed:
+        <input type="number" id="speed-input" value="1" min="0.1" step="0.1" aria-label="Set replay speed" />
+        ×
+      </label>
+      <button id="export-btn" disabled aria-label="Export visible window to CSV">📥 Export CSV</button>
+    </section>
+
+    <section id="charts">
+      <canvas id="kwChart" aria-label="kW trend chart"></canvas>
+    </section>
+
+    <section id="kpis" role="region" aria-live="polite" aria-atomic="true" aria-label="Key Performance Indicators">
+      <div class="kpi" id="uptime">
+        <div class="kpi-label">Uptime</div>
+        <div class="kpi-value">--<span class="kpi-unit">%</span></div>
+      </div>
+      <div class="kpi" id="avgKw">
+        <div class="kpi-label">Average Power</div>
+        <div class="kpi-value">--<span class="kpi-unit">kW</span></div>
+      </div>
+      <div class="kpi" id="energy">
+        <div class="kpi-label">Energy</div>
+        <div class="kpi-value">--<span class="kpi-unit">kWh</span></div>
+      </div>
+      <div class="kpi" id="pfAvg">
+        <div class="kpi-label">Power Factor</div>
+        <div class="kpi-value">--</div>
+      </div>
+      <div class="kpi" id="throughput">
+        <div class="kpi-label">Throughput</div>
+        <div class="kpi-value">--<span class="kpi-unit">u/min</span></div>
+      </div>
+      <div class="kpi" id="phaseImbalance">
+        <div class="kpi-label">Phase Imbalance</div>
+        <div class="kpi-value">--<span class="kpi-unit">%</span></div>
+      </div>
+    </section>
+
+    <section id="log" aria-live="polite" aria-atomic="true" role="log" aria-label="Event log">
+      <div>Logs will appear here...</div>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
+  <script>
+    const DateTime = luxon.DateTime;
+
+    function calculateKPIs(dataWindow) {
+      if (dataWindow.length === 0) return null;
+      let sumDuration = 0;
+      let runDuration = 0, idleDuration = 0, offDuration = 0;
+      let sumKW = 0, countKW = 0;
+      let pfSum = 0, pfCount = 0;
+      let countTotalDelta = 0;
+      let irs = [], vys = [], ibs = [];
+
+      let prevTimestamp = null;
+      let prevCountTotal = null;
+
+      dataWindow.forEach((d) => {
+        const ts = new Date(d.ts).getTime();
+        if (prevTimestamp !== null) {
+          const diff = ts - prevTimestamp;
+          sumDuration += diff;
+          if (d.state === 'RUN') runDuration += diff;
+          else if (d.state === 'IDLE') idleDuration += diff;
+          else if (d.state === 'OFF') offDuration += diff;
+        }
+        prevTimestamp = ts;
+
+        if (d.kw !== undefined && typeof d.kw === 'number') {
+          sumKW += d.kw;
+          countKW++;
+        }
+
+        if (d.pf !== undefined && typeof d.pf === 'number' && (d.state === 'RUN' || d.state === 'IDLE')) {
+          pfSum += d.pf;
+          pfCount++;
+        }
+
+        if (d.count_total !== undefined && typeof d.count_total === 'number') {
+          if (prevCountTotal !== null) {
+            countTotalDelta += (d.count_total - prevCountTotal);
+          }
+          prevCountTotal = d.count_total;
+        }
+
+        if (typeof d.ir === 'number') irs.push(d.ir);
+        if (typeof d.iy === 'number') vys.push(d.iy);
+        if (typeof d.ib === 'number') ibs.push(d.ib);
+      });
+
+      const uptimePct = sumDuration ? (runDuration / sumDuration) * 100 : 0;
+      const avgKW = countKW ? (sumKW / countKW) : 0;
+      const pfAvg = pfCount ? (pfSum / pfCount) : 0;
+
+      let kwhTotals = dataWindow.map(d => d.kwh_total).filter(v => typeof v === 'number');
+      let energy = 0;
+      if (kwhTotals.length > 0) {
+        energy = Math.max(...kwhTotals) - Math.min(...kwhTotals);
+      }
+
+      const windowMinutes = sumDuration / (60 * 1000);
+      const throughput = windowMinutes > 0 ? (countTotalDelta / windowMinutes) : 0;
+
+      let maxPhase = Math.max(...irs, ...vys, ...ibs);
+      let minPhase = Math.min(...irs, ...vys, ...ibs);
+      let avgPhase = (irs.concat(vys).concat(ibs).reduce((a, b) => a + b, 0)) / (irs.length + vys.length + ibs.length);
+      const phaseImbalancePct = avgPhase !== 0 ? ((maxPhase - minPhase) / avgPhase) * 100 : 0;
+
+      return {
+        uptimePct: uptimePct.toFixed(2),
+        avgKW: avgKW.toFixed(2),
+        pfAvg: pfAvg.toFixed(2),
+        energy: energy.toFixed(2),
+        throughput: throughput.toFixed(2),
+        phaseImbalancePct: phaseImbalancePct.toFixed(2)
+      };
+    }
+
+    function updateKPIsUI(kpis) {
+      if (!kpis) {
+        document.getElementById('uptime').innerHTML = '<div class="kpi-label">Uptime</div><div class="kpi-value">--<span class="kpi-unit">%</span></div>';
+        document.getElementById('avgKw').innerHTML = '<div class="kpi-label">Average Power</div><div class="kpi-value">--<span class="kpi-unit">kW</span></div>';
+        document.getElementById('energy').innerHTML = '<div class="kpi-label">Energy</div><div class="kpi-value">--<span class="kpi-unit">kWh</span></div>';
+        document.getElementById('pfAvg').innerHTML = '<div class="kpi-label">Power Factor</div><div class="kpi-value">--</div>';
+        document.getElementById('throughput').innerHTML = '<div class="kpi-label">Throughput</div><div class="kpi-value">--<span class="kpi-unit">u/min</span></div>';
+        document.getElementById('phaseImbalance').innerHTML = '<div class="kpi-label">Phase Imbalance</div><div class="kpi-value">--<span class="kpi-unit">%</span></div>';
+        return;
+      }
+      document.getElementById('uptime').innerHTML = `<div class="kpi-label">Uptime</div><div class="kpi-value">${kpis.uptimePct}<span class="kpi-unit">%</span></div>`;
+      document.getElementById('avgKw').innerHTML = `<div class="kpi-label">Average Power</div><div class="kpi-value">${kpis.avgKW}<span class="kpi-unit">kW</span></div>`;
+      document.getElementById('energy').innerHTML = `<div class="kpi-label">Energy</div><div class="kpi-value">${kpis.energy}<span class="kpi-unit">kWh</span></div>`;
+      document.getElementById('pfAvg').innerHTML = `<div class="kpi-label">Power Factor</div><div class="kpi-value">${kpis.pfAvg}</div>`;
+      document.getElementById('throughput').innerHTML = `<div class="kpi-label">Throughput</div><div class="kpi-value">${kpis.throughput}<span class="kpi-unit">u/min</span></div>`;
+      document.getElementById('phaseImbalance').innerHTML = `<div class="kpi-label">Phase Imbalance</div><div class="kpi-value">${kpis.phaseImbalancePct}<span class="kpi-unit">%</span></div>`;
+    }
+
+    let eventSource = null, replayData = [], replayIndex = 0, replayTimer = null, dataWindow = [];
+    const gapIndicator = document.getElementById('gap-indicator');
+    const logDiv = document.getElementById('log');
+    let lastEventTimestamp = null, gapTimeout = null;
+
+    const liveBtn = document.getElementById('live-btn');
+    const fileInput = document.getElementById('file-input');
+    const playBtn = document.getElementById('play-btn');
+    const pauseBtn = document.getElementById('pause-btn');
+    const speedInput = document.getElementById('speed-input');
+    const exportBtn = document.getElementById('export-btn');
+
+    function logMessage(msg) {
+      const time = new Date().toLocaleTimeString();
+      const logEntry = document.createElement('div');
+      logEntry.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
+      logDiv.insertBefore(logEntry, logDiv.firstChild);
+
+      // Keep only last 100 log entries
+      while (logDiv.children.length > 100) {
+        logDiv.removeChild(logDiv.lastChild);
+      }
+    }
+
+    const kwChartCtx = document.getElementById('kwChart').getContext('2d');
+    const kwChart = new Chart(kwChartCtx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Power (kW)',
+          data: [],
+          borderColor: '#667eea',
+          backgroundColor: 'rgba(102, 126, 234, 0.1)',
+          fill: true,
+          tension: 0.4,
+          borderWidth: 3,
+          pointRadius: 0,
+          pointHoverRadius: 6,
+          pointHoverBackgroundColor: '#667eea',
+          pointHoverBorderColor: '#fff',
+          pointHoverBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              font: {
+                size: 14,
+                weight: '600'
+              },
+              color: '#2d3748',
+              usePointStyle: true,
+              padding: 15
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            titleFont: { size: 14, weight: '600' },
+            bodyFont: { size: 13 },
+            cornerRadius: 8
+          }
+        },
+        scales: {
+          x: {
+            type: 'time',
+            time: {
+              tooltipFormat: 'HH:mm:ss',
+              unit: 'minute'
+            },
+            title: {
+              display: true,
+              text: 'Time',
+              font: { size: 13, weight: '600' },
+              color: '#4a5568'
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)'
+            },
+            ticks: {
+              color: '#718096'
+            }
+          },
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Power (kW)',
+              font: { size: 13, weight: '600' },
+              color: '#4a5568'
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)'
+            },
+            ticks: {
+              color: '#718096'
+            }
+          }
+        }
+      }
+    });
+
+    function updateCharts() {
+      const labels = dataWindow.map(d => new Date(d.ts));
+      const kwData = dataWindow.map(d => d.kw);
+
+      kwChart.data.labels = labels;
+      kwChart.data.datasets[0].data = kwData;
+      kwChart.update();
+    }
+
+    function handleDataPoint(data) {
+      try {
+        const obj = JSON.parse(data);
+        dataWindow.push(obj);
+        const windowDurationMs = 30 * 60 * 1000;
+        const now = new Date(obj.ts).getTime();
+        dataWindow = dataWindow.filter(d => (new Date(d.ts).getTime() >= (now - windowDurationMs)));
+        updateCharts();
+        updateKPIsUI(calculateKPIs(dataWindow));
+        lastEventTimestamp = Date.now();
+        updateGapIndicator();
+        exportBtn.disabled = false;
+        logMessage(`Received: state=${obj.state}, kw=${obj.kw}`);
+      } catch (e) {
+        logMessage('❌ Error parsing data: ' + e.message);
+      }
+    }
+
+    function updateGapIndicator() {
+      clearTimeout(gapTimeout);
+      const now = Date.now();
+      if (lastEventTimestamp === null || now - lastEventTimestamp > 10000) {
+        gapIndicator.style.visibility = 'visible';
+        logMessage('⚠️ No data received in last 10 seconds');
+      } else {
+        gapIndicator.style.visibility = 'hidden';
+        gapTimeout = setTimeout(updateGapIndicator, 11000);
+      }
+    }
+
+    liveBtn.onclick = () => {
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+      dataWindow = [];
+      updateCharts();
+      updateKPIsUI(null);
+      gapIndicator.style.visibility = 'hidden';
+      exportBtn.disabled = true;
+      logDiv.innerHTML = '';
+
+      eventSource = new EventSource('http://localhost:8080/stream');
+      eventSource.onopen = () => logMessage('✅ Connected to SSE stream');
+      eventSource.onmessage = (event) => handleDataPoint(event.data);
+      eventSource.onerror = (e) => {
+        logMessage('❌ EventSource error or disconnected');
+        eventSource.close();
+        eventSource = null;
+      };
+    };
+
+    fileInput.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      const lines = text.trim().split('\n');
+      replayData = [];
+      for (const line of lines) {
+        try {
+          JSON.parse(line);
+          replayData.push(line);
+        } catch (ex) {
+          logMessage('❌ Skipping invalid JSON line: ' + line);
+        }
+      }
+      replayIndex = 0;
+      playBtn.disabled = replayData.length === 0;
+      pauseBtn.disabled = true;
+      dataWindow = [];
+      updateCharts();
+      updateKPIsUI(null);
+      gapIndicator.style.visibility = 'hidden';
+      exportBtn.disabled = true;
+      logDiv.innerHTML = '';
+      logMessage(`📁 Loaded ${replayData.length} valid JSON lines for replay`);
+    };
+
+    playBtn.onclick = () => {
+      if (replayTimer) return;
+      replayTimer = setInterval(() => {
+        if (replayIndex >= replayData.length) {
+          clearInterval(replayTimer);
+          replayTimer = null;
+          logMessage('✅ Replay completed');
+          return;
+        }
+        handleDataPoint(replayData[replayIndex]);
+        replayIndex++;
+      }, 1000 / parseFloat(speedInput.value || 1));
+      playBtn.disabled = true;
+      pauseBtn.disabled = false;
+      logMessage('▶️ Replay started');
+    };
+
+    pauseBtn.onclick = () => {
+      if (!replayTimer) return;
+      clearInterval(replayTimer);
+      replayTimer = null;
+      playBtn.disabled = false;
+      pauseBtn.disabled = true;
+      logMessage('⏸️ Replay paused');
+    };
+
+    exportBtn.onclick = () => {
+      if (dataWindow.length === 0) return;
+      const headers = Object.keys(dataWindow[0]);
+      const csvRows = [
+        headers.join(','),
+        ...dataWindow.map(row => headers.map(h => JSON.stringify(row[h] || '')).join(','))
+      ];
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'device_stream_window.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      logMessage('📥 CSV exported successfully');
+    };
+
+    liveBtn.click();
+  </script>
+</body>
+
+</html>
